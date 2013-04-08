@@ -380,7 +380,7 @@ module ActiveRecord
       end
 
       def supports_insert_with_returning?
-        true
+        false
       end
 
       def supports_ddl_transactions?
@@ -521,6 +521,14 @@ module ActiveRecord
 
       # DATABASE STATEMENTS ======================================
 
+      # override the insert statement to get the return value - need a better way than max
+      def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [])
+        sql, binds = sql_for_insert(to_sql(arel, binds), pk, id_value, sequence_name, binds)
+        exec_insert(sql, name, binds)
+        table_ref = extract_table_ref_from_insert_sql(sql)
+        select_value("select max(#{quote_column_name(pk)}) from #{table_ref}")
+      end
+
       def explain(arel, binds = [])
         sql = "EXPLAIN #{to_sql(arel, binds)}"
         ExplainPrettyPrinter.new.pp(exec_query(sql, 'EXPLAIN', binds))
@@ -578,7 +586,7 @@ module ActiveRecord
         end
 
         if pk
-          select_value("#{sql} RETURNING #{quote_column_name(pk)}")
+          select_value("#{sql}")
         else
           super
         end
@@ -676,7 +684,7 @@ module ActiveRecord
           pk = primary_key(table_ref) if table_ref
         end
 
-        sql = "#{sql} RETURNING #{quote_column_name(pk)}" if pk
+        sql = "#{sql}"
 
         [sql, binds]
       end
