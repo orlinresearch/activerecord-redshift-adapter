@@ -399,7 +399,7 @@ module ActiveRecord
 
       # Returns the configured supported identifier length supported by Redshift
       def table_alias_length
-        @table_alias_length ||= query('SHOW max_identifier_length')[0][0].to_i
+        @table_alias_length ||= 127
       end
 
       # QUOTING ==================================================
