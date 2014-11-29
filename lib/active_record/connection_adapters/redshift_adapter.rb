@@ -525,8 +525,10 @@ module ActiveRecord
       def insert(arel, name = nil, pk = nil, id_value = nil, sequence_name = nil, binds = [])
         sql, binds = sql_for_insert(to_sql(arel, binds), pk, id_value, sequence_name, binds)
         exec_insert(sql, name, binds)
-        table_ref = extract_table_ref_from_insert_sql(sql)
-        select_value("select max(#{quote_column_name(pk)}) from #{table_ref}")
+        unless pk.blank?
+          table_ref = extract_table_ref_from_insert_sql(sql)
+          select_value("select max(#{quote_column_name(pk)}) from #{table_ref}")
+        end
       end
 
       def explain(arel, binds = [])
