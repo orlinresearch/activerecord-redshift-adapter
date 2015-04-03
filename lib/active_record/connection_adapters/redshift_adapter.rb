@@ -597,19 +597,30 @@ module ActiveRecord
 
       # create a 2D array representing the result set
       def result_as_array(res) #:nodoc:
+
+        # CJR 4/2/15 - just figured out the types we are using am converting those -- need to fix this
+        convert_types = {integer: 23, float: 701, numeric: 1700, date: 1082, binint: 20, string: 1043}
+
         # check if we have any binary column and if they need escaping
         ftypes = Array.new(res.nfields) do |i|
           [i, res.ftype(i)]
         end
 
         rows = res.values
+
+
         return rows unless ftypes.any? { |_, x|
-          x == BYTEA_COLUMN_TYPE_OID || x == MONEY_COLUMN_TYPE_OID
+          convert_types.values.include?(x) || x == BYTEA_COLUMN_TYPE_OID || x == MONEY_COLUMN_TYPE_OID
         }
 
         typehash = ftypes.group_by { |_, type| type }
         binaries = typehash[BYTEA_COLUMN_TYPE_OID] || []
         monies   = typehash[MONEY_COLUMN_TYPE_OID] || []
+        integers = typehash[23] || []
+        integers += typehash[20] unless typehash[20].nil?
+        floats   = typehash[701] || []
+        floats   += typehash[1700] unless typehash[1700].nil?
+        dates    = typehash[1082] || []
 
         rows.each do |row|
           # unescape string passed BYTEA field (OID == 17)
@@ -617,9 +628,18 @@ module ActiveRecord
             row[index] = unescape_bytea(row[index])
           end
 
+          integers.each do |index, _|
+            row[index] = row[index].to_i
+          end
+          floats.each do |index, _|
+            row[index] = row[index].to_f
+          end
+          dates.each do |index, _|
+            row[index] = Date.parse(row[index])
+          end
           # If this is a money type column and there are any currency symbols,
           # then strip them off. Indeed it would be prettier to do this in
-          # RedshiftColumn.string_to_decimal but would break form input
+          # PostgreSQLColumn.string_to_decimal but would break form input
           # fields that call value_before_type_cast.
           monies.each do |index, _|
             data = row[index]
@@ -628,15 +648,14 @@ module ActiveRecord
             #  (1) $12,345,678.12
             #  (2) $12.345.678,12
             case data
-            when /^-?\D+[\d,]+\.\d{2}$/  # (1)
-              data.gsub!(/[^-\d.]/, '')
-            when /^-?\D+[\d.]+,\d{2}$/  # (2)
-              data.gsub!(/[^-\d,]/, '').sub!(/,/, '.')
+              when /^-?\D+[\d,]+\.\d{2}$/  # (1)
+                data.gsub!(/[^-\d.]/, '')
+              when /^-?\D+[\d.]+,\d{2}$/  # (2)
+                data.gsub!(/[^-\d,]/, '').sub!(/,/, '.')
             end
           end
         end
       end
-
 
       # Queries the database and returns the results in an Array-like object
       def query(sql, name = nil) #:nodoc:
