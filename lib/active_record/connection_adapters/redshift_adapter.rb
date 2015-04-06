@@ -12,8 +12,8 @@ module ActiveRecord
     # Establishes a connection to the database that's used by all Active Record objects
     def self.redshift_connection(config) # :nodoc:
       config = config.symbolize_keys
-      host     = config[:host]
-      port     = config[:port] || 5432
+      host = config[:host]
+      port = config[:port] || 5432
       username = config[:username].to_s if config[:username]
       password = config[:password].to_s if config[:password]
 
@@ -40,150 +40,156 @@ module ActiveRecord
       # :stopdoc:
       class << self
         attr_accessor :money_precision
+
         def string_to_time(string)
           return string unless String === string
 
           case string
-          when 'infinity'  then 1.0 / 0.0
-          when '-infinity' then -1.0 / 0.0
-          else
-            super
+            when 'infinity' then
+              1.0 / 0.0
+            when '-infinity' then
+              -1.0 / 0.0
+            else
+              super
           end
         end
       end
       # :startdoc:
 
       private
-        def extract_limit(sql_type)
-          case sql_type
-          when /^bigint/i;    8
-          when /^smallint/i;  2
-          else super
-          end
-        end
-
-        # Extracts the scale from Redshift-specific data types.
-        def extract_scale(sql_type)
-          # Money type has a fixed scale of 2.
-          sql_type =~ /^money/ ? 2 : super
-        end
-
-        # Extracts the precision from Redshift-specific data types.
-        def extract_precision(sql_type)
-          if sql_type == 'money'
-            self.class.money_precision
+      def extract_limit(sql_type)
+        case sql_type
+          when /^bigint/i;
+            8
+          when /^smallint/i;
+            2
           else
             super
-          end
         end
+      end
 
-        # Maps Redshift-specific data types to logical Rails types.
-        def simplified_type(field_type)
-          case field_type
-            # Numeric and monetary types
-            when /^(?:real|double precision)$/
-              :float
-            # Monetary types
-            when 'money'
-              :decimal
-            # Character types
-            when /^(?:character varying|bpchar)(?:\(\d+\))?$/
-              :string
-            # Binary data types
-            when 'bytea'
-              :binary
-            # Date/time types
-            when /^timestamp with(?:out)? time zone$/
-              :datetime
-            when 'interval'
-              :string
-            # Geometric types
-            when /^(?:point|line|lseg|box|"?path"?|polygon|circle)$/
-              :string
-            # Network address types
-            when /^(?:cidr|inet|macaddr)$/
-              :string
-            # Bit strings
-            when /^bit(?: varying)?(?:\(\d+\))?$/
-              :string
-            # XML type
-            when 'xml'
-              :xml
-            # tsvector type
-            when 'tsvector'
-              :tsvector
-            # Arrays
-            when /^\D+\[\]$/
-              :string
-            # Object identifier types
-            when 'oid'
-              :integer
-            # UUID type
-            when 'uuid'
-              :string
-            # Small and big integer types
-            when /^(?:small|big)int$/
-              :integer
-            # Pass through all types that are not specific to Redshift.
-            else
-              super
-          end
-        end
+      # Extracts the scale from Redshift-specific data types.
+      def extract_scale(sql_type)
+        # Money type has a fixed scale of 2.
+        sql_type =~ /^money/ ? 2 : super
+      end
 
-        # Extracts the value from a Redshift column default definition.
-        def self.extract_value_from_default(default)
-          case default
-            # This is a performance optimization for Ruby 1.9.2 in development.
-            # If the value is nil, we return nil straight away without checking
-            # the regular expressions. If we check each regular expression,
-            # Regexp#=== will call NilClass#to_str, which will trigger
-            # method_missing (defined by whiny nil in ActiveSupport) which
-            # makes this method very very slow.
-            when NilClass
-              nil
-            # Numeric types
-            when /\A\(?(-?\d+(\.\d*)?\)?)\z/
-              $1
-            # Character types
-            when /\A\(?'(.*)'::.*\b(?:character varying|bpchar|text)\z/m
-              $1
-            # Binary data types
-            when /\A'(.*)'::bytea\z/m
-              $1
-            # Date/time types
-            when /\A'(.+)'::(?:time(?:stamp)? with(?:out)? time zone|date)\z/
-              $1
-            when /\A'(.*)'::interval\z/
-              $1
-            # Boolean type
-            when 'true'
-              true
-            when 'false'
-              false
-            # Geometric types
-            when /\A'(.*)'::(?:point|line|lseg|box|"?path"?|polygon|circle)\z/
-              $1
-            # Network address types
-            when /\A'(.*)'::(?:cidr|inet|macaddr)\z/
-              $1
-            # Bit string types
-            when /\AB'(.*)'::"?bit(?: varying)?"?\z/
-              $1
-            # XML type
-            when /\A'(.*)'::xml\z/m
-              $1
-            # Arrays
-            when /\A'(.*)'::"?\D+"?\[\]\z/
-              $1
-            # Object identifier types
-            when /\A-?\d+\z/
-              $1
-            else
-              # Anything else is blank, some user type, or some function
-              # and we can't know the value of that, so return nil.
-              nil
-          end
+      # Extracts the precision from Redshift-specific data types.
+      def extract_precision(sql_type)
+        if sql_type == 'money'
+          self.class.money_precision
+        else
+          super
         end
+      end
+
+      # Maps Redshift-specific data types to logical Rails types.
+      def simplified_type(field_type)
+        case field_type
+          # Numeric and monetary types
+          when /^(?:real|double precision)$/
+            :float
+          # Monetary types
+          when 'money'
+            :decimal
+          # Character types
+          when /^(?:character varying|bpchar)(?:\(\d+\))?$/
+            :string
+          # Binary data types
+          when 'bytea'
+            :binary
+          # Date/time types
+          when /^timestamp with(?:out)? time zone$/
+            :datetime
+          when 'interval'
+            :string
+          # Geometric types
+          when /^(?:point|line|lseg|box|"?path"?|polygon|circle)$/
+            :string
+          # Network address types
+          when /^(?:cidr|inet|macaddr)$/
+            :string
+          # Bit strings
+          when /^bit(?: varying)?(?:\(\d+\))?$/
+            :string
+          # XML type
+          when 'xml'
+            :xml
+          # tsvector type
+          when 'tsvector'
+            :tsvector
+          # Arrays
+          when /^\D+\[\]$/
+            :string
+          # Object identifier types
+          when 'oid'
+            :integer
+          # UUID type
+          when 'uuid'
+            :string
+          # Small and big integer types
+          when /^(?:small|big)int$/
+            :integer
+          # Pass through all types that are not specific to Redshift.
+          else
+            super
+        end
+      end
+
+      # Extracts the value from a Redshift column default definition.
+      def self.extract_value_from_default(default)
+        case default
+          # This is a performance optimization for Ruby 1.9.2 in development.
+          # If the value is nil, we return nil straight away without checking
+          # the regular expressions. If we check each regular expression,
+          # Regexp#=== will call NilClass#to_str, which will trigger
+          # method_missing (defined by whiny nil in ActiveSupport) which
+          # makes this method very very slow.
+          when NilClass
+            nil
+          # Numeric types
+          when /\A\(?(-?\d+(\.\d*)?\)?)\z/
+            $1
+          # Character types
+          when /\A\(?'(.*)'::.*\b(?:character varying|bpchar|text)\z/m
+            $1
+          # Binary data types
+          when /\A'(.*)'::bytea\z/m
+            $1
+          # Date/time types
+          when /\A'(.+)'::(?:time(?:stamp)? with(?:out)? time zone|date)\z/
+            $1
+          when /\A'(.*)'::interval\z/
+            $1
+          # Boolean type
+          when 'true'
+            true
+          when 'false'
+            false
+          # Geometric types
+          when /\A'(.*)'::(?:point|line|lseg|box|"?path"?|polygon|circle)\z/
+            $1
+          # Network address types
+          when /\A'(.*)'::(?:cidr|inet|macaddr)\z/
+            $1
+          # Bit string types
+          when /\AB'(.*)'::"?bit(?: varying)?"?\z/
+            $1
+          # XML type
+          when /\A'(.*)'::xml\z/m
+            $1
+          # Arrays
+          when /\A'(.*)'::"?\D+"?\[\]\z/
+            $1
+          # Object identifier types
+          when /\A-?\d+\z/
+            $1
+          else
+            # Anything else is blank, some user type, or some function
+            # and we can't know the value of that, so return nil.
+            nil
+        end
+      end
     end
 
     # The Redshift adapter works both with the native C (http://ruby.scripting.ca/postgres/) and the pure
@@ -216,20 +222,20 @@ module ActiveRecord
       ADAPTER_NAME = 'Redshift'
 
       NATIVE_DATABASE_TYPES = {
-        :primary_key => "int identity(1,1) primary key",
-        :string      => { :name => "character varying", :limit => 255 },
-        :text        => { :name => "text" },
-        :integer     => { :name => "integer" },
-        :float       => { :name => "float" },
-        :decimal     => { :name => "decimal" },
-        :datetime    => { :name => "timestamp" },
-        :timestamp   => { :name => "timestamp" },
-        :time        => { :name => "time" },
-        :date        => { :name => "date" },
-        :binary      => { :name => "bytea" },
-        :boolean     => { :name => "boolean" },
-        :xml         => { :name => "xml" },
-        :tsvector    => { :name => "tsvector" }
+          :primary_key => "int identity(1,1) primary key",
+          :string => {:name => "character varying", :limit => 255},
+          :text => {:name => "text"},
+          :integer => {:name => "integer"},
+          :float => {:name => "float"},
+          :decimal => {:name => "decimal"},
+          :datetime => {:name => "timestamp"},
+          :timestamp => {:name => "timestamp"},
+          :time => {:name => "time"},
+          :date => {:name => "date"},
+          :binary => {:name => "bytea"},
+          :boolean => {:name => "boolean"},
+          :xml => {:name => "xml"},
+          :tsvector => {:name => "tsvector"}
       }
 
       # Returns 'Redshift' as adapter name for identification purposes.
@@ -251,13 +257,24 @@ module ActiveRecord
         def initialize(connection, max)
           super
           @counter = 0
-          @cache   = Hash.new { |h,pid| h[pid] = {} }
+          @cache = Hash.new { |h, pid| h[pid] = {} }
         end
 
-        def each(&block); cache.each(&block); end
-        def key?(key);    cache.key?(key); end
-        def [](key);      cache[key]; end
-        def length;       cache.length; end
+        def each(&block)
+          ; cache.each(&block);
+        end
+
+        def key?(key)
+          ; cache.key?(key);
+        end
+
+        def [](key)
+          ; cache[key];
+        end
+
+        def length;
+          cache.length;
+        end
 
         def next_key
           "a#{@counter + 1}"
@@ -421,27 +438,31 @@ module ActiveRecord
         return super unless column
 
         case value
-        when Float
-          return super unless value.infinite? && column.type == :datetime
-          "'#{value.to_s.downcase}'"
-        when Numeric
-          return super unless column.sql_type == 'money'
-          # Not truly string input, so doesn't require (or allow) escape string syntax.
-          "'#{value}'"
-        when String
-          case column.sql_type
-          when 'bytea' then "'#{escape_bytea(value)}'"
-          when 'xml'   then "xml '#{quote_string(value)}'"
-          when /^bit/
-            case value
-            when /^[01]*$/      then "B'#{value}'" # Bit-string notation
-            when /^[0-9A-F]*$/i then "X'#{value}'" # Hexadecimal notation
+          when Float
+            return super unless value.infinite? && column.type == :datetime
+            "'#{value.to_s.downcase}'"
+          when Numeric
+            return super unless column.sql_type == 'money'
+            # Not truly string input, so doesn't require (or allow) escape string syntax.
+            "'#{value}'"
+          when String
+            case column.sql_type
+              when 'bytea' then
+                "'#{escape_bytea(value)}'"
+              when 'xml' then
+                "xml '#{quote_string(value)}'"
+              when /^bit/
+                case value
+                  when /^[01]*$/ then
+                    "B'#{value}'" # Bit-string notation
+                  when /^[0-9A-F]*$/i then
+                    "X'#{value}'" # Hexadecimal notation
+                end
+              else
+                super
             end
           else
             super
-          end
-        else
-          super
         end
       end
 
@@ -449,11 +470,11 @@ module ActiveRecord
         return super unless column
 
         case value
-        when String
-          return super unless 'bytea' == column.sql_type
-          { :value => value, :format => 1 }
-        else
-          super
+          when String
+            return super unless 'bytea' == column.sql_type
+            {:value => value, :format => 1}
+          else
+            super
         end
       end
 
@@ -552,7 +573,7 @@ module ActiveRecord
         #
         def pp(result)
           header = result.columns.first
-          lines  = result.rows.map(&:first)
+          lines = result.rows.map(&:first)
 
           # We add 2 because there's one char of padding at both sides, note
           # the extra hyphens in the example above.
@@ -563,7 +584,7 @@ module ActiveRecord
           pp << header.center(width).rstrip
           pp << '-' * width
 
-          pp += lines.map {|line| " #{line}"}
+          pp += lines.map { |line| " #{line}" }
 
           nrows = result.rows.length
           rows_label = nrows == 1 ? 'row' : 'rows'
@@ -593,6 +614,7 @@ module ActiveRecord
           super
         end
       end
+
       alias :create :insert
 
       # create a 2D array representing the result set
@@ -615,12 +637,12 @@ module ActiveRecord
 
         typehash = ftypes.group_by { |_, type| type }
         binaries = typehash[BYTEA_COLUMN_TYPE_OID] || []
-        monies   = typehash[MONEY_COLUMN_TYPE_OID] || []
+        monies = typehash[MONEY_COLUMN_TYPE_OID] || []
         integers = typehash[23] || []
         integers += typehash[20] unless typehash[20].nil?
-        floats   = typehash[701] || []
-        floats   += typehash[1700] unless typehash[1700].nil?
-        dates    = typehash[1082] || []
+        floats = typehash[701] || []
+        floats += typehash[1700] unless typehash[1700].nil?
+        dates = typehash[1082] || []
 
         rows.each do |row|
           # unescape string passed BYTEA field (OID == 17)
@@ -635,7 +657,7 @@ module ActiveRecord
             row[index] = row[index].to_f
           end
           dates.each do |index, _|
-            row[index] = Date.parse(row[index])
+            row[index] = Date.parse(row[index]) unless row[index].nil?
           end
           # If this is a money type column and there are any currency symbols,
           # then strip them off. Indeed it would be prettier to do this in
@@ -648,9 +670,9 @@ module ActiveRecord
             #  (1) $12,345,678.12
             #  (2) $12.345.678,12
             case data
-              when /^-?\D+[\d,]+\.\d{2}$/  # (1)
+              when /^-?\D+[\d,]+\.\d{2}$/ # (1)
                 data.gsub!(/[^-\d.]/, '')
-              when /^-?\D+[\d.]+,\d{2}$/  # (2)
+              when /^-?\D+[\d.]+,\d{2}$/ # (2)
                 data.gsub!(/[^-\d,]/, '').sub!(/,/, '.')
             end
           end
@@ -679,7 +701,7 @@ module ActiveRecord
       def exec_query(sql, name = 'SQL', binds = [])
         log(sql, name, binds) do
           result = binds.empty? ? exec_no_cache(sql, binds) :
-                                  exec_cache(sql, binds)
+              exec_cache(sql, binds)
 
           ret = ActiveRecord::Result.new(result.fields, result_as_array(result))
           result.clear
@@ -690,12 +712,13 @@ module ActiveRecord
       def exec_delete(sql, name = 'SQL', binds = [])
         log(sql, name, binds) do
           result = binds.empty? ? exec_no_cache(sql, binds) :
-                                  exec_cache(sql, binds)
+              exec_cache(sql, binds)
           affected = result.cmd_tuples
           result.clear
           affected
         end
       end
+
       alias :exec_update :exec_delete
 
       def sql_for_insert(sql, pk, id_value, sequence_name, binds)
@@ -767,18 +790,18 @@ module ActiveRecord
 
         option_string = options.symbolize_keys.sum do |key, value|
           case key
-          when :owner
-            " OWNER = \"#{value}\""
-          when :template
-            " TEMPLATE = \"#{value}\""
-          when :encoding
-            " ENCODING = '#{value}'"
-          when :tablespace
-            " TABLESPACE = \"#{value}\""
-          when :connection_limit
-            " CONNECTION LIMIT = #{value}"
-          else
-            ""
+            when :owner
+              " OWNER = \"#{value}\""
+            when :template
+              " TEMPLATE = \"#{value}\""
+            when :encoding
+              " ENCODING = '#{value}'"
+            when :tablespace
+              " TABLESPACE = \"#{value}\""
+            when :connection_limit
+              " CONNECTION LIMIT = #{value}"
+            else
+              ""
           end
         end
 
@@ -817,7 +840,7 @@ module ActiveRecord
             FROM pg_class c
             LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
             WHERE c.relkind in ('v','r')
-            AND c.relname = '#{table.gsub(/(^"|"$)/,'')}'
+            AND c.relname = '#{table.gsub(/(^"|"$)/, '')}'
             AND n.nspname = #{schema ? "'#{schema}'" : 'ANY (current_schemas(false))'}
         SQL
       end
@@ -833,7 +856,7 @@ module ActiveRecord
 
       # Returns an array of indexes for the given table.
       def indexes(table_name, name = nil)
-         result = query(<<-SQL, 'SCHEMA')
+        result = query(<<-SQL, 'SCHEMA')
            SELECT distinct i.relname, d.indisunique, d.indkey, pg_get_indexdef(d.indexrelid), t.oid
            FROM pg_class t
            INNER JOIN pg_index d ON t.oid = d.indrelid
@@ -864,7 +887,7 @@ module ActiveRecord
 
           # add info on sort order for columns (only desc order is explicitly specified, asc is the default)
           desc_order_columns = inddef.scan(/(\w+) DESC/).flatten
-          orders = desc_order_columns.any? ? Hash[desc_order_columns.map {|order_column| [order_column, :desc]}] : {}
+          orders = desc_order_columns.any? ? Hash[desc_order_columns.map { |order_column| [order_column, :desc] }] : {}
 
           column_names.empty? ? nil : IndexDefinition.new(table_name, index_name, unique, column_names, [], orders)
         end.compact
@@ -1080,24 +1103,30 @@ module ActiveRecord
       # Maps logical Rails types to Redshift-specific data types.
       def type_to_sql(type, limit = nil, precision = nil, scale = nil)
         case type.to_s
-        when 'binary'
-          # Redshift doesn't support limits on binary (bytea) columns.
-          # The hard limit is 1Gb, because of a 32-bit size field, and TOAST.
-          case limit
-          when nil, 0..0x3fffffff; super(type)
-          else raise(ActiveRecordError, "No binary type has byte size #{limit}.")
-          end
-        when 'integer'
-          return 'integer' unless limit
+          when 'binary'
+            # Redshift doesn't support limits on binary (bytea) columns.
+            # The hard limit is 1Gb, because of a 32-bit size field, and TOAST.
+            case limit
+              when nil, 0..0x3fffffff;
+                super(type)
+              else
+                raise(ActiveRecordError, "No binary type has byte size #{limit}.")
+            end
+          when 'integer'
+            return 'integer' unless limit
 
-          case limit
-            when 1, 2; 'smallint'
-            when 3, 4; 'integer'
-            when 5..8; 'bigint'
-            else raise(ActiveRecordError, "No integer type has byte size #{limit}. Use a numeric with precision 0 instead.")
-          end
-        else
-          super
+            case limit
+              when 1, 2;
+                'smallint'
+              when 3, 4;
+                'integer'
+              when 5..8;
+                'bigint'
+              else
+                raise(ActiveRecordError, "No integer type has byte size #{limit}. Use a numeric with precision 0 instead.")
+            end
+          else
+            super
         end
       end
 
@@ -1114,7 +1143,7 @@ module ActiveRecord
         # any ASC/DESC modifiers
         order_columns = orders.collect { |s| s.gsub(/\s+(ASC|DESC)\s*(NULLS\s+(FIRST|LAST)\s*)?/i, '') }
         order_columns.delete_if { |c| c.blank? }
-        order_columns = order_columns.zip((0...order_columns.size).to_a).map { |s,i| "#{s} AS alias_#{i}" }
+        order_columns = order_columns.zip((0...order_columns.size).to_a).map { |s, i| "#{s} AS alias_#{i}" }
 
         "DISTINCT #{columns}, #{order_columns * ', '}"
       end
@@ -1133,146 +1162,146 @@ module ActiveRecord
         # * <tt>schema_name."table.name"</tt>
         # * <tt>"schema.name"."table name"</tt>
         def extract_schema_and_table(name)
-          table, schema = name.scan(/[^".\s]+|"[^"]*"/)[0..1].collect{|m| m.gsub(/(^"|"$)/,'') }.reverse
+          table, schema = name.scan(/[^".\s]+|"[^"]*"/)[0..1].collect { |m| m.gsub(/(^"|"$)/, '') }.reverse
           [schema, table]
         end
       end
 
       protected
-        # Returns the version of the connected Redshift server.
-        def redshift_version
-          @connection.server_version
-        end
+      # Returns the version of the connected Redshift server.
+      def redshift_version
+        @connection.server_version
+      end
 
-        def translate_exception(exception, message)
-          case exception.message
+      def translate_exception(exception, message)
+        case exception.message
           when /duplicate key value violates unique constraint/
             RecordNotUnique.new(message, exception)
           when /violates foreign key constraint/
             InvalidForeignKey.new(message, exception)
           else
             super
-          end
         end
+      end
 
       private
-        FEATURE_NOT_SUPPORTED = "0A000" # :nodoc:
+      FEATURE_NOT_SUPPORTED = "0A000" # :nodoc:
 
-        def exec_no_cache(sql, binds)
-          @connection.async_exec(sql)
-        end
+      def exec_no_cache(sql, binds)
+        @connection.async_exec(sql)
+      end
 
-        def exec_cache(sql, binds)
-          begin
-            stmt_key = prepare_statement sql
+      def exec_cache(sql, binds)
+        begin
+          stmt_key = prepare_statement sql
 
-            # Clear the queue
-            @connection.get_last_result
-            @connection.send_query_prepared(stmt_key, binds.map { |col, val|
-              type_cast(val, col)
-            })
-            @connection.block
-            @connection.get_last_result
-          rescue PGError => e
-            # Get the PG code for the failure.  Annoyingly, the code for
-            # prepared statements whose return value may have changed is
-            # FEATURE_NOT_SUPPORTED.  Check here for more details:
-            # http://git.redshift.org/gitweb/?p=redshift.git;a=blob;f=src/backend/utils/cache/plancache.c#l573
-            code = e.result.result_error_field(PGresult::PG_DIAG_SQLSTATE)
-            if FEATURE_NOT_SUPPORTED == code
-              @statements.delete sql_key(sql)
-              retry
-            else
-              raise e
-            end
+          # Clear the queue
+          @connection.get_last_result
+          @connection.send_query_prepared(stmt_key, binds.map { |col, val|
+                                                    type_cast(val, col)
+                                                  })
+          @connection.block
+          @connection.get_last_result
+        rescue PGError => e
+          # Get the PG code for the failure.  Annoyingly, the code for
+          # prepared statements whose return value may have changed is
+          # FEATURE_NOT_SUPPORTED.  Check here for more details:
+          # http://git.redshift.org/gitweb/?p=redshift.git;a=blob;f=src/backend/utils/cache/plancache.c#l573
+          code = e.result.result_error_field(PGresult::PG_DIAG_SQLSTATE)
+          if FEATURE_NOT_SUPPORTED == code
+            @statements.delete sql_key(sql)
+            retry
+          else
+            raise e
           end
         end
+      end
 
-        # Returns the statement identifier for the client side cache
-        # of statements
-        def sql_key(sql)
-          "#{schema_search_path}-#{sql}"
+      # Returns the statement identifier for the client side cache
+      # of statements
+      def sql_key(sql)
+        "#{schema_search_path}-#{sql}"
+      end
+
+      # Prepare the statement if it hasn't been prepared, return
+      # the statement key.
+      def prepare_statement(sql)
+        sql_key = sql_key(sql)
+        unless @statements.key? sql_key
+          nextkey = @statements.next_key
+          @connection.prepare nextkey, sql
+          @statements[sql_key] = nextkey
         end
+        @statements[sql_key]
+      end
 
-        # Prepare the statement if it hasn't been prepared, return
-        # the statement key.
-        def prepare_statement(sql)
-          sql_key = sql_key(sql)
-          unless @statements.key? sql_key
-            nextkey = @statements.next_key
-            @connection.prepare nextkey, sql
-            @statements[sql_key] = nextkey
-          end
-          @statements[sql_key]
+      # The internal Redshift identifier of the money data type.
+      MONEY_COLUMN_TYPE_OID = 790 #:nodoc:
+      # The internal Redshift identifier of the BYTEA data type.
+      BYTEA_COLUMN_TYPE_OID = 17 #:nodoc:
+
+      # Connects to a Redshift server and sets up the adapter depending on the
+      # connected server's characteristics.
+      def connect
+        @connection = PGconn.connect(*@connection_parameters)
+
+        # Money type has a fixed precision of 10 in Redshift 8.2 and below, and as of
+        # Redshift 8.3 it has a fixed precision of 19. RedshiftColumn.extract_precision
+        # should know about this but can't detect it there, so deal with it here.
+        RedshiftColumn.money_precision = (redshift_version >= 80300) ? 19 : 10
+
+        configure_connection
+      end
+
+      # Configures the encoding, verbosity, schema search path, and time zone of the connection.
+      # This is called by #connect and should not be called manually.
+      def configure_connection
+        if @config[:encoding]
+          @connection.set_client_encoding(@config[:encoding])
         end
+        self.schema_search_path = @config[:schema_search_path] || @config[:schema_order]
+      end
 
-        # The internal Redshift identifier of the money data type.
-        MONEY_COLUMN_TYPE_OID = 790 #:nodoc:
-        # The internal Redshift identifier of the BYTEA data type.
-        BYTEA_COLUMN_TYPE_OID = 17 #:nodoc:
+      # Returns the current ID of a table's sequence.
+      def last_insert_id(sequence_name) #:nodoc:
+        r = exec_query("SELECT currval('#{sequence_name}')", 'SQL')
+        Integer(r.rows.first.first)
+      end
 
-        # Connects to a Redshift server and sets up the adapter depending on the
-        # connected server's characteristics.
-        def connect
-          @connection = PGconn.connect(*@connection_parameters)
+      # Executes a SELECT query and returns the results, performing any data type
+      # conversions that are required to be performed here instead of in RedshiftColumn.
+      def select(sql, name = nil, binds = [])
+        exec_query(sql, name, binds).to_a
+      end
 
-          # Money type has a fixed precision of 10 in Redshift 8.2 and below, and as of
-          # Redshift 8.3 it has a fixed precision of 19. RedshiftColumn.extract_precision
-          # should know about this but can't detect it there, so deal with it here.
-          RedshiftColumn.money_precision = (redshift_version >= 80300) ? 19 : 10
+      def select_raw(sql, name = nil)
+        res = execute(sql, name)
+        results = result_as_array(res)
+        fields = res.fields
+        res.clear
+        return fields, results
+      end
 
-          configure_connection
-        end
-
-        # Configures the encoding, verbosity, schema search path, and time zone of the connection.
-        # This is called by #connect and should not be called manually.
-        def configure_connection
-          if @config[:encoding]
-            @connection.set_client_encoding(@config[:encoding])
-          end
-          self.schema_search_path = @config[:schema_search_path] || @config[:schema_order]
-        end
-
-        # Returns the current ID of a table's sequence.
-        def last_insert_id(sequence_name) #:nodoc:
-          r = exec_query("SELECT currval('#{sequence_name}')", 'SQL')
-          Integer(r.rows.first.first)
-        end
-
-        # Executes a SELECT query and returns the results, performing any data type
-        # conversions that are required to be performed here instead of in RedshiftColumn.
-        def select(sql, name = nil, binds = [])
-          exec_query(sql, name, binds).to_a
-        end
-
-        def select_raw(sql, name = nil)
-          res = execute(sql, name)
-          results = result_as_array(res)
-          fields = res.fields
-          res.clear
-          return fields, results
-        end
-
-        # Returns the list of a table's column names, data types, and default values.
-        #
-        # The underlying query is roughly:
-        #  SELECT column.name, column.type, default.value
-        #    FROM column LEFT JOIN default
-        #      ON column.table_id = default.table_id
-        #     AND column.num = default.column_num
-        #   WHERE column.table_id = get_table_id('table_name')
-        #     AND column.num > 0
-        #     AND NOT column.is_dropped
-        #   ORDER BY column.num
-        #
-        # If the table name is not prefixed with a schema, the database will
-        # take the first match from the schema search path.
-        #
-        # Query implementation notes:
-        #  - format_type includes the column size constraint, e.g. varchar(50)
-        #  - ::regclass is a function that gives the id for a table name
-        def column_definitions(table_name) #:nodoc:
-          exec_query(<<-end_sql, 'SCHEMA').rows
+      # Returns the list of a table's column names, data types, and default values.
+      #
+      # The underlying query is roughly:
+      #  SELECT column.name, column.type, default.value
+      #    FROM column LEFT JOIN default
+      #      ON column.table_id = default.table_id
+      #     AND column.num = default.column_num
+      #   WHERE column.table_id = get_table_id('table_name')
+      #     AND column.num > 0
+      #     AND NOT column.is_dropped
+      #   ORDER BY column.num
+      #
+      # If the table name is not prefixed with a schema, the database will
+      # take the first match from the schema search path.
+      #
+      # Query implementation notes:
+      #  - format_type includes the column size constraint, e.g. varchar(50)
+      #  - ::regclass is a function that gives the id for a table name
+      def column_definitions(table_name) #:nodoc:
+        exec_query(<<-end_sql, 'SCHEMA').rows
             SELECT a.attname, format_type(a.atttypid, a.atttypmod),
                      pg_get_expr(d.adbin, d.adrelid), a.attnotnull, a.atttypid, a.atttypmod
               FROM pg_attribute a LEFT JOIN pg_attrdef d
@@ -1280,27 +1309,27 @@ module ActiveRecord
              WHERE a.attrelid = '#{quote_table_name(table_name)}'::regclass
                AND a.attnum > 0 AND NOT a.attisdropped
              ORDER BY a.attnum
-          end_sql
-        end
+        end_sql
+      end
 
-        def extract_pg_identifier_from_name(name)
-          match_data = name.start_with?('"') ? name.match(/\"([^\"]+)\"/) : name.match(/([^\.]+)/)
+      def extract_pg_identifier_from_name(name)
+        match_data = name.start_with?('"') ? name.match(/\"([^\"]+)\"/) : name.match(/([^\.]+)/)
 
-          if match_data
-            rest = name[match_data[0].length, name.length]
-            rest = rest[1, rest.length] if rest.start_with? "."
-            [match_data[1], (rest.length > 0 ? rest : nil)]
-          end
+        if match_data
+          rest = name[match_data[0].length, name.length]
+          rest = rest[1, rest.length] if rest.start_with? "."
+          [match_data[1], (rest.length > 0 ? rest : nil)]
         end
+      end
 
-        def extract_table_ref_from_insert_sql(sql)
-          sql[/into\s+([^\(]*).*values\s*\(/i]
-          $1.strip if $1
-        end
+      def extract_table_ref_from_insert_sql(sql)
+        sql[/into\s+([^\(]*).*values\s*\(/i]
+        $1.strip if $1
+      end
 
-        def table_definition
-          TableDefinition.new(self)
-        end
+      def table_definition
+        TableDefinition.new(self)
+      end
     end
   end
 end
